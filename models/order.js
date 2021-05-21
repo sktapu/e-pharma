@@ -29,6 +29,10 @@ const OrderSchema = new mongoose.Schema(
       type: ObjectId,
       ref: "User",
     },
+    prescription: {
+      data: { type: Buffer, default: null },
+      contentType: { type: String, default: null },
+    },
   },
   { timestamps: true }
 );

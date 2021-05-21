@@ -1,4 +1,7 @@
 const { Order, ProductCart } = require("../models/order");
+const formidable = require("formidable");
+const _ = require("lodash");
+const fs = require("fs");
 
 exports.getOrderById = (req, res, next, id) => {
   Order.findById(id)
@@ -27,6 +30,39 @@ exports.createOrder = (req, res) => {
   });
 };
 
+exports.prescription = (req, res) => {
+  let order = req.order;
+  let form = new formidable.IncomingForm();
+  form.keepExtensions = true;
+  form.parse(req, (err, fields, file) => {
+    if (err) {
+      return res.status(400).json({
+        error: "Problem with image",
+      });
+    }
+
+    //handle file here
+    if (file.photo) {
+      if (file.photo.size > 3000000) {
+        return res.status(400).json({
+          error: "File Size too BIG!",
+        });
+      }
+      order.prescription.data = fs.readFileSync(file.photo.path);
+      order.prescription.contentType = file.photo.type;
+    }
+
+    //save to DB
+    order.save((err, order) => {
+      if (err) {
+        res.status(400).json({
+          error: "Saving prescription in DB failed",
+        });
+      }
+      res.json(order);
+    });
+  });
+};
 exports.getAllOrders = (req, res) => {
   Order.find()
     .populate("user", "_id name")
@@ -58,4 +94,12 @@ exports.updateStatus = (req, res) => {
       return res.json(order);
     }
   );
+};
+
+exports.prescriptionphoto = (req, res, next) => {
+  if (req.order.prescription.data) {
+    res.set("Content-Type", req.order.prescription.contentType);
+    return res.send(req.order.prescription.data);
+  }
+  next();
 };
